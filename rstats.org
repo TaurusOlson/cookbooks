@@ -1,0 +1,39 @@
+#+TITLE: Rstats
+#+DATE: 2016-08-06
+#+SETUPFILE: setup/style.setup
+
+
+* Connect to a PostgreSQL database
+
+#+BEGIN_SRC R
+  library(RPostgreSQL)
+  conn <- dbConnect(PostgreSQL(), user=user, dbname=dbname)
+  tracked <- dbGetQuery(conn, "select * from tracked")
+  dbDisconnect(conn)
+#+END_SRC
+
+* Load data
+** Read data with `data.table`
+
+#+BEGIN_SRC R
+  # load the data.table package
+  library(data.table)
+
+  # Import potatoes.txt with fread(): potatoes
+  potatoes <- fread("potatoes.txt")
+
+  # Import 20 rows of potatoes.txt with fread(): potatoes_part
+  potatoes_part <- fread("potatoes.txt", nrows=20)
+#+END_SRC
+
+** Read a CSV file
+
+* Save a plot
+
+#+BEGIN_SRC R
+  png(filename="file.png")
+  plot(x, y)
+  dev.off()
+#+END_SRC
+
+Replace `png` by `pdf`, `jpeg` or `bmp`.
