@@ -1,8 +1,7 @@
 #+TITLE: PostgreSQL
 #+DATE: 2016-07-05
 #+OLSON: PROG/SQL
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./css/style.css" />
-#+OPTIONS: num:0 toc:1 html-postamble:nil
+#+SETUPFILE: setup/style.setup
 
 
 * Create a database

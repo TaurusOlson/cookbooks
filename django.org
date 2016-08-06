@@ -1,7 +1,6 @@
 #+TITLE: Django
 #+DATE: 2016-07-18
-#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://thomasf.github.io/solarized-css/solarized-light.min.css" />
-#+OPTIONS: num:0 toc:1 html-postamble:nil
+#+SETUPFILE: setup/style.setup
 
 * Basics
 ** Create a project

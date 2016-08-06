@@ -1,5 +1,6 @@
 #+TITLE: redis
 #+DATE: 2016-07-30
+#+SETUPFILE: setup/style.setup
 
 
 * What is Redis?

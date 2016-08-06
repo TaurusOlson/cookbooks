@@ -1,5 +1,6 @@
 #+TITLE: Elisp
 #+DATE: 2016-07-07
+#+SETUPFILE: setup/style.setup
 #+OLSON: PROG/EMACS
 
 * let bindings
