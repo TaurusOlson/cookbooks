@@ -1,1 +1,468 @@
-/Users/damien/Dropbox/olson/notes/redis.org
+#+TITLE: redis
+#+DATE: 2016-07-30
+
+
+* What is Redis?
+
+  - Redis is a key-value NOSQL database.
+  - It stores all its values as strings.
+  - The values are stored in data structures
+
+** Redis data structures
+*** List
+*** Hash
+*** Set
+*** Sorted set
+
+
+* Global commands
+** EXPIRE
+   Set a key's time to live in seconds
+
+#+BEGIN_SRC redis
+SET name "John Boone"
+EXPIRE name 10
+# After 10 seconds
+GET name
+(nil)
+#+END_SRC
+
+** TTL
+   Get the time to live for a key
+
+#+BEGIN_SRC redis
+SET name "John Boone"
+EXPIRE name 10
+ttl name
+# After 2 seconds
+(integer) 8
+#+END_SRC
+
+** PERSIST
+   Remove the expiration from a key
+
+#+BEGIN_SRC redis
+SET name "John Boone"
+EXPIRE name 10
+TTL name
+# After 2 seconds
+(integer) 8
+PERSIST name
+(integer) 1
+TTL name
+(integer) -1
+#+END_SRC
+
+** KEYS
+   Find all keys matching the given pattern.
+   Can take a long time if there are many keys.
+
+** RENAME
+* Commands on strings
+** SET
+
+#+BEGIN_SRC redis db: 127.0.0.1:6379
+SET book "Red Mars"
+SET heroes 99
+#+END_SRC
+
+** GET
+
+#+BEGIN_SRC redis
+GET book
+#+END_SRC
+
+** SETNX
+   Set not existing value.
+
+#+BEGIN_SRC redis
+SETNX book "Green Mars"
+(integer) 0
+
+SETNX new_book "Green Mars"
+(integer) 1
+#+END_SRC
+
+** INCR
+
+#+BEGIN_SRC redis
+INCR heroes
+(integer) 100
+#+END_SRC
+
+** DECR
+
+#+BEGIN_SRC redis
+DECR heroes
+(integer) 99
+#+END_SRC
+** APPEND
+   Append a string to another. (Remember all data are stored as strings!)
+   Returns the length of the final string.
+
+#+BEGIN_SRC redis
+APPEND book " by KSR"
+(integer) 15
+#+END_SRC
+
+** SETBIT
+   Sets or clears the bit at offset in the string value stored.
+   This example sets value 1 for the bit at offset 3.
+
+#+BEGIN_SRC redis
+SETBIT mask 3 1
+#+END_SRC
+
+** GETBIT
+   Returns the bit value at offset in the string value stored at key
+
+#+BEGIN_SRC redis
+GETBIT mask 3
+#+END_SRC
+
+** GETRANGE
+   Get a substring of the string stored at a key
+
+#+BEGIN_SRC redis
+SET message "Hello redis"
+Getrange message 0 2
+"Hel"
+#+END_SRC
+
+** SETRANGE
+   Overwrite part of a string at key starting at the specified offset
+   This example sets value "ola " at offset 1.
+
+#+BEGIN_SRC redis
+SETRANGE message 1 "ola "
+GET message
+"Hola  redis"
+#+End_SRC
+
+* Commands on lists
+** LPUSH
+
+#+BEGIN_SRC redis
+LPUSH books "Red Mars"
+#+END_SRC
+
+** RPUSH
+
+#+BEGIN_SRC redis
+RPUSH books "Green Mars" "Blue Mars"
+#+END_SRC
+
+** LPOP
+** RPOP
+** LLEN
+** LRANGE
+#+BEGIN_SRC redis
+LRANGE books 0 -1
+1) "Red Mars"
+2) "Green Mars"
+3) "Blue Mars"
+#+END_SRC
+
+** LINDEX
+
+#+BEGIN_SRC redis
+LINDEX books 1
+"Green Mars"
+#+END_SRC
+
+** LTRIM
+   Trim a list to the specified range
+
+#+BEGIN_SRC redis
+RPUSH fib 0 1 1 2 3 5 8 13 21 34 55 89 144
+LTRIM fib 0 6
+LRANGE fib 0 -1
+1) "0"
+2) "1"
+3) "1"
+4) "2"
+5) "3"
+6) "5"
+7) "8"
+#+END_SRC
+
+** RPOPLPUSPH
+   Remove the last element in a list, prepend it to another list and return it
+
+#+BEGIN_SRC redis
+RPUSH queue a b c d e f
+RPOPLPUSH queue working_queue
+"f"
+RPOPLPUSH queue working_queue
+"e"
+LRANGE working_queue 0 -1
+1) "e"
+2) "f"
+LRANGE queue 0 -1
+1) "a"
+2) "b"
+3) "c"
+4) "d"
+#+END_SRC
+
+** BRPOPLPUSPH
+   Pop a value from a list, push it to another list and return it; or block until one is available
+
+#+BEGIN_SRC redis
+BRPOPLPUSPH source destination timeout
+#+END_SRC
+* Commands on hashes
+** HSET
+
+#+BEGIN_SRC redis
+HSET hero:ideal name "Nirgal"
+(integer) 1
+HSET hero:ideal generation 2
+(integer) 1
+HSET hero:ideal father Coyote
+(integer) 1
+HSET hero:ideal mother Hiroko
+(integer) 1
+HSET hero:ideal age 30
+(integer) 1
+#+END_SRC
+
+** HGET
+
+#+BEGIN_SRC redis
+HGET hero:ideal name
+"Nirgal"
+HGET hero:ideal mother
+"Hiroko"
+#+END_SRC
+** HMSET
+   Set multiple hash fields to multiple values
+
+#+BEGIN_SRC redis
+HMSET hero:scientist name "Sax Russell" generation 1
+OK
+#+END_SRC
+
+** HSETNX
+   Set the value of a hash field, only if the field does not exist
+
+** HGETALL
+   Get all the fields and values in a hash
+
+#+BEGIN_SRC redis
+HGETALL hero:ideal
+1) "age"
+2) "30"
+3) "name"
+4) "Nirgal"
+5) "generation"
+6) "2"
+#+END_SRC
+
+** HINCRBY
+   Increment the integer value of a hash field by the given number
+
+#+BEGIN_SRC redis
+HINCRBY hero:ideal age 1
+(integer) 31
+#+END_SRC
+** HINCRBYFLOAT
+** HKEYS
+
+#+BEGIN_SRC redis
+HKEYS hero:ideal
+1) "age"
+2) "name"
+3) "generation"
+4) "father"
+5) "mother"
+#+END_SRC
+
+** HVALS
+
+#+BEGIN_SRC redis
+HVALS hero:ideal
+1) "31"
+2) "Nirgal"
+3) "2"
+4) "Coyote"
+5) "Hiroko"
+#+END_SRC
+
+** HLEN
+
+#+BEGIN_SRC redis
+HLEN hero:ideal
+(integer) 5
+#+END_SRC
+
+** HDEL
+   Delete one or more hash fields
+
+** HEXISTS
+   Determine if a hash field exists
+
+#+BEGIN_SRC redis
+HEXISTS hero:ideal name
+(integer) 1
+Hexists hero:ideal hobby
+(integer) 0
+#+END_SRC
+
+* Commands on sets
+** SADD
+#+BEGIN_SRC redis
+SADD mars:places "Olympus Mons"
+(Integer) 1
+SADD mars:places "Olympus Mons"
+(integer) 0
+SADD mars:places "Valles Marineris"
+(integer) 1
+#+END_SRC
+
+** SREM
+
+#+BEGIN_SRC redis
+SREM mars:places "Valles Marineris"
+(integer) 1
+#+END_SRC
+
+** SMEMBERS
+   Get all the members in a set
+
+#+BEGIN_SRC redis
+SMEMBERS places
+1) "Olympus Mons"
+#+END_SRC
+
+** SISMEMBER
+   Determine if a given value is a member of a set
+
+#+BEGIN_SRC redis
+SMEMBERS mars:places "Olympus Mons"
+(integer) 1
+#+END_SRC
+
+** SDIFF
+
+#+BEGIN_SRC redis
+SADD solsys:places "Mount Everest" "Olympus Mons" "Sahara"
+(integer) 3
+SDIFF solsys:places mars:places
+1) "Mount Everest"
+2) "Sahara"
+#+END_SRC
+
+** SDIFFSTORE
+   Subtract multiple sets and store the resulting set in a key
+
+#+BEGIN_SRC redis
+   SDIFFSTORE destination key [key ...]
+#+END_SRC
+
+#+BEGIN_SRC redis
+SDIFFSTORE notmars:places solsys:places mars:places
+(integer) 2
+SMEMBERS notmars:places
+1) "Mount Everest"
+2) "Sahara"
+#+END_SRC
+
+** SINTER
+
+#+BEGIN_SRC redis
+SINTER solsys:places mars:places
+1) "Olympus Mons"
+#+END_SRC
+
+** SINTERSTORE
+
+#+BEGIN_SRC redis
+SINTERSTORE solsysandmars:places solsys:places mars:places
+(integer) 1
+SMEMBERS solsysandmars:places
+1) "Olympus Mons"
+#+END_SRC
+
+** SUNION
+
+** SRANDMEMBER
+   Get one or multiple random members from a set
+
+#+BEGIN_SRC redis
+SRANDMEMBER solsys:places
+"Olympus Mons"
+
+SRANDMEMBER solsys:places 2
+1) "Mount Everest"
+2) "Sahara"
+#+End_SRC
+
+** SPOP
+   Remove and return one or multiple random members from a set
+
+#+BEGIN_SRC redis
+SPOP solsys:places
+"Olympus Mons"
+
+SPOP solsys:places 2
+1) "Mount Everest"
+2) "Sahara"
+
+SPOP solsys:places 2
+(empty list or set)
+#+END_SRC
+* Commands on sorted sets
+** ZADD
+
+#+BEGIN_SRC redis
+zadd fav_heroes 100 "John Boone"
+(integer) 1
+zadd fav_heroes 200 "Nirgal"
+(Integer) 1
+zadd fav_heroes 0 "Frank Chalmers"
+(integer) 1
+zadd fav_heroes 50 "Hiroko"
+(integer) 1
+#+END_SRC
+
+** ZREM
+   Remove one or more members from a sorted set
+
+#+BEGIN_SRC
+ZREM key member [member ...]
+#+END_SRC
+
+** ZSCORE
+   Get the score associated with the given member in a sorted set
+
+#+BEGIN_SRC
+ZSCORE key member
+#+END_SRC
+
+#+BEGIN_SRC redis
+ZSCORE fav_heroes "John Boone"
+"100"
+#+END_SRC
+
+** ZRANGE
+   Return a range of members in a sorted set, by index
+
+#+BEGIN_SRC
+ZRANGE key start stop [WITHSCORES]
+#+END_SRC
+
+
+#+BEGIN_SRC redis
+ZRANGE fav_heroes 0 -1 WITHSCORES
+ 1) "Frank Chalmers"
+ 2) "0"
+ 3) "Hiroko"
+ 4) "50"
+ 5) "Sax Russell"
+ 6) "50"
+ 7) "John Boone"
+ 8) "100"
+ 9) "Nirgal"
+10) "200"
+#+END_SRC

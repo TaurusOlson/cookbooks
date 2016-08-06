@@ -1,1 +1,138 @@
-/Users/damien/Dropbox/olson/notes/django.org
+#+TITLE: Django
+#+DATE: 2016-07-18
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="http://thomasf.github.io/solarized-css/solarized-light.min.css" />
+#+OPTIONS: num:0 toc:1 html-postamble:nil
+
+* Basics
+** Create a project
+
+#+BEGIN_SRC shell
+django-admin startproject <project_name>
+#+END_SRC
+
+** Run the server
+
+#+BEGIN_SRC shell
+python manage.py runserver
+#+END_SRC
+
+** Create an application
+
+#+BEGIN_SRC shell
+python manage.py startapp <app_name>
+#+END_SRC
+
+** Projects VS apps
+
+  - App: a Web application that does something
+  * Project: a collection of configuration and apps for a particular website.
+    A project can contain multiple apps. An app can be in multiple projects
+
+** Setup the database
+
+  This will create the database with all the required tables set in *<project_name>/settings.py*
+
+#+BEGIN_SRC shell
+python manage.py migrate
+#+END_SRC
+
+** Activate the models of an application
+
+  First we make the migrations for the given application.
+
+#+BEGIN_SRC shell
+python manage.py makemigrations <app_name>
+#+END_SRC
+
+  Migrations are how Django stores changes to your models
+  (and thus your database schema) - they're just files on disk.
+  You can read the migration for your new model if you like;
+  it's the file *<app_name>/migrations/<migration_number>_initial.py*.
+
+** See the SQL migration that will be run
+
+#+BEGIN_SRC shell
+python manage.py sqlmigrate <app_name> <migration_number>
+#+END_SRC
+
+   The sqlmigrate command doesn’t actually run the migration on your database.
+   It just prints it to the screen so that you can see what SQL Django thinks is required.
+
+#+begin_note
+3-step guide to making model changes:
+
+*** Change your models (in *models.py*)
+*** Run *python manage.py makemigrations* to create migrations for those changes
+*** Run *python manage.py migrate* to apply those changes to the database.
+#+end_note
+
+** Playing with the API
+
+#+BEGIN_SRC shell
+python manage.py shell
+#+END_SRC
+
+** Create an admin user
+
+#+BEGIN_SRC shell
+python manage.py createsuperuser
+#+END_SRC
+
+** Run tests
+
+#+BEGIN_SRC shell
+python manage.py test polls
+#+END_SRC
+
+* Advanced
+** models.Manager
+
+   The manager is accessible with =model_name.objects=. It defines what should be
+   present in the queryset.
+
+#+BEGIN_SRC python
+  class DahlBookManager(models.Manager):
+      """Only Roald Dahl books"""
+      def get_queryset(self):
+          return super(DahlBookManager, self).get_queryset().filter(status='DONE')
+
+  class Book(models.Model):
+      name = CharField(max_length=30)
+      author = CharField(max_length=40)
+      objects = models.Manager() # The default manager
+      dahl_objects = DahlBookManager()
+
+      def __str__(self):
+          return self.object
+#+END_SRC
+
+   =Book.objects= returns the default Manager and Book.dahl_objects will
+   return the custom manager =DahlBookmanager=. Applying a method =all=, =filter=, ...
+   returns a =QuerySet=.
+** Change the name of a table
+
+   You can set the name of your table by specifying =db_table= in the table =Meta= class.
+
+#+BEGIN_SRC python
+  class MyModel(models.Model):
+      ...
+
+      class Meta:
+          db_table = 'table_name'
+#+END_SRC
+** Update by incrementing the field of many rows
+
+   In this example, we increment the age of the users by 1:
+
+#+BEGIN_SRC python
+  from django.db.models import F
+  users.update(age=F('age')+1)
+#+END_SRC
+
+* Interesting projects/extensions
+** Eventlog
+   To create an activity feed
+** django-extensions
+   To extend the functionalities of manage.py
+** [[https://wagtail.io/][wagtail]]
+   A beautiful CMS for big web sites (live search...)

@@ -1,1 +1,100 @@
-/Users/damien/Dropbox/olson/notes/machine_learning.org
+#+TITLE: Machine learning
+#+DATE: 2016-07-19
+
+
+* Setup
+
+  Before diving into the code, we need to setup the environment.
+
+#+BEGIN_SRC sh
+  # mkvirtualenv -p $(pythonz locate 3.5.0) machine
+  workon machine
+#+END_SRC
+
+#+RESULTS:
+
+** The packages
+   We'll create a virtualen environment with all the necessary packages.
+
+#+BEGIN_SRC sh
+  pip install scipy numpy scikit-learn matplotlib
+#+End_SRC
+
+
+* The basics
+** Supervised learning
+   Supervised learning is used for predicting values.
+
+   Examples:
+   - filtering out spam in emails
+
+*** How it works?
+    1. You train a model using labeled data
+    2. Make predictions on new data for which the label is unknown.
+
+*** 2 types of supervised learning
+    1. Classification: response is **categorical**
+    1. Regression: response is **ordered and continuous**
+
+** Unsupervised learning
+   Unsupervised learning doesn't use the features and labels provided by the user like
+   in supervised learning. Instead the algorithm extracts itself the features from the data.
+
+** scikit-learn
+*** The 4 steps of scikit-learn
+**** Import the class for the model (estimator)
+
+#+BEGIN_SRC python
+  from sklearn.tree import DecisionTreeClassifier
+#+END_SRC
+
+**** Create the instance of the model
+
+#+BEGIN_SRC python
+  clf = DecisionTreeClassifier()
+#+END_SRC
+
+**** Fit the model (train the model)
+
+#+BEGIN_SRC python
+  clf.fit(X, y)
+#+END_SRC
+
+**** Predict the response for a new observation
+
+#+BEGIN_SRC python
+  clf.predict(X_new)
+#+END_SRC
+
+*** Example
+   We start with a really simple example we'll build. We'll use supervised learning to do a
+   classification. Let's imagine we try to determine if the data we are presented with
+   is an apple or an orange depending on the features.
+
+   We have 2 features: texture ("soft" (0) and "bumpy" (1)) and mass
+   The label is:"Orange" (0) or "Apple" (1)
+
+   Here are the data we'll use:
+
+| texture | mass | label |
+|---------+------+-------|
+|       1 |  130 |     0 |
+|       1 |  140 |     0 |
+|       0 |  110 |     1 |
+|       0 |  120 |     1 |
+
+First, we'll use the decision tree algorithm as our classifier:
+
+#+BEGIN_SRC python
+  from sklearn import tree
+  X = [[1, 130], [1, 140], [0, 110], [0, 120]]
+  y = [0, 0, 1, 1]
+  to_strings = {0: "orange", 1: "apple"}
+  clf = tree.DecisionTreeClassifier()
+  clf.fit(X, y)
+  X_new = [0, 115]
+  y_pred = clf.predict([X_new])
+  print('The predicted response is {0}'.format(to_strings[y_pred[0]]))
+#+END_SRC
+
+#+RESULTS:

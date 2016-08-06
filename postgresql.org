@@ -1,1 +1,596 @@
-/Users/damien/Dropbox/olson/notes/postgresql.org
+#+TITLE: PostgreSQL
+#+DATE: 2016-07-05
+#+OLSON: PROG/SQL
+#+HTML_HEAD: <link rel="stylesheet" type="text/css" href="./css/style.css" />
+#+OPTIONS: num:0 toc:1 html-postamble:nil
+
+
+* Create a database
+
+#+BEGIN_SRC sh
+  createdb <dbname>
+#+END_SRC
+
+* Migrate from sqlite
+
+#+BEGIN_SRC sh
+  sqlite3 database.db .dump > sqlite-dumpfile.sql
+  psql database < sqlite-dumpfile.sql
+#+END_SRC
+
+* Dump a database to a file
+
+#+BEGIN_SRC sh
+  pg_dump dbname > dbname.sql
+#+END_SRC
+
+* Restore the dump
+
+#+BEGIN_SRC sh
+  psql dbname < dbname.sql
+#+END_SRC
+
+  or with a custom format:
+
+#+BEGIN_SRC sh
+  pg_dump -Fc my_database > my_database.dump
+  createdb my_new_database
+  pg_restore -d my_new_database my_database.dump
+#+END_SRC
+
+  Using the custom format option provides a couple benefits. The output is
+  significantly compressed in comparison to a generic SQL dump. The dump and
+  restoration is more flexible. Lastly, the dump can be performed in parallel if
+  your machine has multiple cores to work with. Likewise, the restoration can be
+  done in parallel with multiple jobs.
+
+  source: [[https://til.hashrocket.com/posts/96a1badb60-dump-and-restore-a-postgresql-database][Today I learned (by Hashrocket)]]
+
+* List the databases on the server
+
+** In the command line:
+
+#+BEGIN_SRC sh
+psql -l
+#+END_SRC
+
+** In the client
+
+#+BEGIN_SRC sql
+\l
+#+END_SRC
+
+* Show the content of a table
+
+#+BEGIN_SRC sql
+table mytable;
+#+END_SRC
+
+* Generate a series
+** From start to stop
+
+#+BEGIN_SRC sql
+  select * from generate_series(1, 10);
+#+END_SRC
+
+** From start to stop with a step
+
+#+BEGIN_SRC sql
+  select * from generate_series(1, 10, 2);
+#+END_SRC
+
+** From a date to another date
+
+#+BEGIN_SRC sql
+  select * from generate_series(current_date, current_date+10, '1 day');
+#+END_SRC
+
+* Export to CSV
+
+#+BEGIN_SRC sql
+  COPY table_name TO '/path/to/table_name.csv' DELIMITER ',' CSV HEADER;
+#+End_SRC
+
+  where =table_name= is the name of your table.
+  Note that you must give the full path to the new csv file.
+
+* Execute commands from file
+
+#+BEGIN_SRC sql
+\i FILE
+#+END_SRC
+
+* Output all query results to file or |pipe
+
+#+BEGIN_SRC sql
+\o [FILE]
+#+END_SRC
+
+* Get current week
+
+#+BEGIN_SRC sql
+  select date_trunc('week', current_date)::date + generate_series(0,6);
+#+END_SRC
+
+* Get current week number
+
+#+BEGIN_SRC sql
+  select date_part('week', current_date);
+#+END_SRC
+  or
+
+#+BEGIN_SRC sql
+  select extract('week' from current_date);
+#+END_SRC
+
+* Shift an event
+
+#+BEGIN_SRC sql
+  update events set end_date=end_date + interval '1 week' where id=<id>;
+#+END_SRC
+
+* Replace a string by a new string
+
+#+BEGIN_SRC sql
+  update table set column=replace(column, old, new) where id=<id>;
+#+END_SRC
+
+* Make a histogram
+
+#+BEGIN_SRC sql
+  select floor(dt/30)*30 as bucket_floor, count(*) from done_tracked_view group by 1 order by 1;
+#+END_SRC
+
+with nicer labels
+
+#+BEGIN_SRC sql
+  select
+      bucket_floor,
+      CONCAT(bucket_floor, ' to ', bucket_ceiling) as bucket_name,
+      count(*) as count
+  from (
+          select
+                  floor(revenue/5.00)*5 as bucket_floor,
+                  floor(revenue/5.00)*5 + 5 as bucket_ceiling
+          from web_sessions_table
+  ) a
+  group by 1, 2
+  order by 1;
+#+END_SRC
+
+* Update PostgreSQL
+
+#+BEGIN_SRC sh
+# Stop the server
+pg_ctl stop -w -D /usr/local/var/postgres
+
+# Upgrade with homebrew
+brew upgrade postgresql
+
+# Initialize a new 9.5 database
+initdb /usr/local/var/postgres9.5 -E utf8
+
+# Run pg_upgrade
+pg_upgrade -v \
+    -d /usr/local/var/postgres \
+    -D /usr/local/var/postgres9.5 \
+    -b /usr/local/Cellar/postgresql/9.4.5/bin/ \
+    -B /usr/local/Cellar/postgresql/9.5.0/bin/
+
+
+# Move new data into place
+cd /usr/local/var
+mv postgres postgres9.4
+mv postgres9.5 postgres
+
+# Restart the server
+pg_ctl start -D /usr/local/var/postgres -w -l /usr/local/var/postgres/postgres-server.log
+#+END_SRC
+
+* Constraints
+
+** NOT NULL
+
+#+BEGIN_SRC sql
+create table people(
+    id serial primary key,
+    name text NOT NULL,
+    age integer
+);
+#+END_SRC
+
+** UNIQUE
+
+#+BEGIN_SRC sql
+create table people(
+    id serial primary key,
+    name text NOT NULL,
+    security_nb integer NOT NULL UNIQUE,
+    age integer
+);
+#+END_SRC
+
+** CHECK
+
+#+BEGIN_SRC sql
+create table people(
+    id serial primary key,
+    name text,
+    age integer CHECK (age >= 0)
+);
+
+#+END_SRC
+
+* ALTER TABLE
+** ADD COLUMN
+
+#+BEGIN_SRC sql
+ALTER TABLE movies ADD COLUMN ratings integer;
+#+END_SRC
+
+** DROP COLUMN
+
+#+BEGIN_SRC sql
+  ALTER TABLE movies DROP COLUMN ratings;
+#+END_SRC
+
+** RENAME
+*** Rename table
+
+#+BEGIN_SRC sql
+  ALTER TABLE mytable RENAME TO ourtable;
+#+END_SRC
+
+*** Rename column in table
+
+#+BEGIN_SRC sql
+  ALTER TABLE mytable RENAME COLUMN col TO new_col;
+#+END_SRC
+
+** ADD CONSTRAINT
+
+*** Add a foreign key
+
+   Add a foreign key called =users_city_id= referencing the column =id= in the table =city=.
+
+#+BEGIN_SRC sql
+  ALTER TABLE users ADD CONSTRAINT users_city_id_fkey FOREIGN KEY (city) REFERENCES city (id) MATCH FULL;
+#+END_SRC
+
+*** Add a primary key
+
+    If you have an =id= column in your table =users= and you want to set =id= as the primary key:
+
+#+BEGIN_SRC sql
+alter table users add primary key(id);
+#+END_SRC
+
+** Naming convention for constraints
+**** For a foreign key
+
+   <src_table>_<dst_table>_<dst_column>_fkey
+
+**** For a primary key
+
+   <src_table>_pkey
+
+** Change type of a column
+
+   Let's suppose we had set the type of the =first_name= column to =text= and
+   we now want to change it to a =varchar(18)=:
+
+#+BEGIN_SRC sql
+  alter table users alter column first_name type varchar(30);
+#+END_SRC
+
+* CREATE FUNCTION
+
+  The most simple example:
+
+#+BEGIN_SRC sql
+  CREATE FUNCTION inc(value integer) RETURNS integer AS $$
+  BEGIN
+  RETURN value + 1;
+  END; $$
+  LANGUAGE PLPGSQL;
+#+END_SRC
+
+** Multiple return values
+
+** Or a function with multiple return values:
+
+#+BEGIN_SRC sql
+CREATE OR REPLACE FUNCTION hi_lo(
+ a NUMERIC,
+ b NUMERIC,
+ c NUMERIC,
+ OUT hi NUMERIC,
+ OUT lo NUMERIC)
+AS $$
+BEGIN
+ hi := GREATEST(a,b,c);
+ lo := LEAST(a,b,c);
+END; $$
+
+LANGUAGE PLPGSQL;
+#+END_SRC
+
+`OUT` designates a return value.
+
+** INOUT parameters
+
+   It happens that the input parameter is also used as the output parameter (INOUT)
+
+#+BEGIN_SRC sql
+  CREATE OR REPLACE FUNCTION square(INOUT a NUMERIC) AS $$
+  BEGIN
+  a := a * a;
+  END;$$
+  LANGUAGE PLPGSQL;
+#+END_SRC
+
+** VARIADIC parameters
+
+#+BEGIN_SRC sql
+  CREATE OR REPLACE FUNCTION sum_avg(
+      VARIADIC list NUMERIC[],
+      OUT total NUMERIC,
+      OUT average NUMERIC
+  )
+  AS $$
+  BEGIN
+     SELECT INTO total SUM(list[i])
+     FROM generate_subscripts(list, 1) g(i);
+
+     SELECT INTO average AVG(list[i])
+     FROM generate_subscripts(list, 1) g(i);
+
+  END; $$
+  LANGUAGE PLPGSQL;
+#+END_SRC
+
+* Copy the selection to a new table
+
+#+BEGIN_SRC sql
+  SELECT *
+  INTO films_recent
+  FROM films
+  WHERE date_prod >= '2002-01-01';
+#+END_SRC
+
+* Select data for a given day of the week
+
+  Indexes start from 0 (Sunday).
+
+#+BEGIN_SRC sql
+  SELECT *
+  FROM table
+  WHERE EXTRACT(DOW FROM column) = 1;
+#+END_SRC
+
+* Add a constrain
+** Set a foreign key
+
+We have a table **projects** with a column `tag` and we want to make sure
+everything in this column references the `name` of a tag in the table **tags**:
+
+#+BEGIN_SRC sql
+ALTER TABLE projects ADD CONSTRAINT tag_fkey FOREIGN KEY (tag) REFERENCES tags(name);
+#+END_SRC
+
+** Set a primary key
+
+#+BEGIN_SRC sql
+ALTER TABLE events ADD CONSTRAINT id_pkey PRIMARY KEY (id);
+#+END_SRC
+
+
+## Convert rows to JSON
+
+* Convert tables and columns
+** Convert the whole table
+
+#+BEGIN_SRC sql
+  SELECT row_to_json(mytable) FROM mytable;
+#+END_SRC
+
+** Convert some columns
+
+#+BEGIN_SRC sql
+  SELECT row_to_json(row(id, col1, col2)) FROM mytable;
+#+END_SRC
+
+** Convert some columns and keep their name
+
+#+BEGIN_SRC sql
+  SELECT row_to_json(t)
+  FROM (
+      SELECT id, col1 FROM mytable
+  ) t;
+#+END_SRC
+
+* Compute the standard deviation of a column
+** Use the population standard deviation
+
+#+BEGIN_SRC sql
+  SELECT stddev_pop(col1) FROM mytable;
+#+END_SRC
+
+which is equivalent to:
+
+#+BEGIN_SRC sql
+  SELECT stddev_samp(col1) * sqrt((count(col1)-1)::numeric / count(col1)) FROM mytable;
+#+END_SRC
+
+** Use the sampling standard deviation
+
+#+BEGIN_SRC sql
+SELECT stddev_samp(col1) FROM mytable;
+#+END_SRC
+
+which is equivalent to:
+
+#+BEGIN_SRC sql
+SELECT stddev_pop(col1) * sqrt(count(col1)::numeric / (count(col1)-1)) FROM mytable;
+#+END_SRC
+
+* Find duplicated values
+** Select only the column with duplicated value
+
+#+BEGIN_SRC sql
+  SELECT col1, count(col1) FROM mytable GROUP BY col1 HAVING count(col1) > 1;
+#+END_SRC
+
+** Show all the duplicated rows except the original one
+
+#+BEGIN_SRC sql
+select * from (
+    select id, name, row_number() over(partition by url order by id asc) as Row from bookmarks
+) dups
+where dups.Row > 1;
+#+END_SRC
+
+  By numbering (row_number) the partitions on the column with duplicated value,
+  ordering by ascendant id and filtering each row where the number > 1, we select
+  only the last duplicated rows in each partition. (with *order by desc*, we would
+  have selected the all the first duplicated rows in each partition)
+
+* Generate fake emails
+
+#+BEGIN_SRC sql
+  insert into users(email)
+  select 'person' || num || '@gmail.com' from generate_series(1, 10000);
+#+END_SRC
+
+** Now with random addresses
+
+#+BEGIN_SRC sql
+select 'person' || num || (
+    case (random() * 2)::integer
+        when 0 then 'gmail'
+        when 1 then 'yahoo'
+        when 2 then 'hotmail'
+    end) || '.com'
+from generate_series(1, 10000) as num;
+#+END_SRC
+
+* Comments
+** Add comment to a table
+
+#+BEGIN_SRC sql
+  comment on table users is 'The users in the game';
+#+END_SRC
+
+** Show table with comment
+
+#+BEGIN_SRC sql
+  \dt+ cmbr
+#+END_SRC
+
+** Remove a comment
+
+#+BEGIN_SRC sql
+  comment on table users is NULL;
+#+END_SRC
+
+** Add comment to a column
+
+#+BEGIN_SRC sql
+  comment on column users.email is 'The email of the users';
+#+END_SRC
+
+* HStore data type
+
+  The Hstore data type allows to store key-value pairs in a column.
+  The keys must be unique, keys and values must be text.
+
+** Load the hstore extension
+
+#+BEGIN_SRC sql
+  create extension hstore
+#+END_SRC
+
+** Add the hstore column
+
+#+BEGIN_SRC sql
+  alter table users add column session_data hstore not null default ''::hstore;
+#+END_SRC
+
+** Insert new key-value pairs in the column
+
+   We use the concatenation to store many key-value pairs in the column.
+
+#+BEGIN_SRC sql
+  update users
+    set session_data = session_data || hstore('12345', '64.107.86.0')
+    where id = 1;
+#+END_SRC
+
+** Delete a key-value pair
+
+#+BEGIN_SRC sql
+  update users set session_data = delete(session_data, '12345');
+#+END_SRC
+* Determine the age of things
+** How long it has been since a given timestamp
+
+#+BEGIN_SRC sql
+  select age(timestamp '2000-01-01');
+#+END_SRC
+
+** How long an event lasted
+
+#+BEGIN_SRC sql
+  select age(timestamp '2002-07-01', timestamp '2002-06-23');
+#+END_SRC
+* Generate a dependency graph of your database
+
+  See post on[[https://sigterm.sh/2010/07/09/generating-a-dependency-graph-for-a-postgresql-database/][ sigterm.sh]].
+* Get the size of a table or a database
+** Size of a table
+
+#+BEGIN_SRC sql
+  select pg_size_pretty(pg_relation_size('users'));
+#+END_SRC
+
+** Size of a database
+
+#+BEGIN_SRC sql
+  select pg_size_pretty(pg_relation_size('dbname'));
+#+END_SRC
+* Arrays
+** Define an array
+
+#+BEGIN_SRC sql
+  select array['a','b','c'];
+#+END_SRC
+
+** Select a value in the array with its index
+
+   In PostgreSQL the index of an array is 1-based.
+
+#+BEGIN_SRC sql
+  create table favorite_numbers(numbers integer[]);
+  insert into favorite_numbers values('{1, 17, 43}');
+  select numbers[1] from favorite_numbers;
+#+END_SRC
+
+** Select values with a slice
+
+    Slices are inclusive.
+
+#+BEGIN_SRC sql
+  create table favorite_numbers(numbers integer[]);
+  insert into favorite_numbers values('{1, 17, 43}');
+  select numbers[1:2] from favorite_numbers;
+#+END_SRC
+* Set the last value of an auto incremented column
+
+  In this example we set the last value of =table_id_seq= to 5.
+
+#+BEGIN_SRC sql
+  SELECT pg_catalog.setval(table_id_seq, 5, true);
+#+END_SRC
+
+  **Note:** This isn't something you should do unless something went wrong with
+    your table.

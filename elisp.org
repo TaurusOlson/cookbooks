@@ -1,1 +1,370 @@
-/Users/damien/Dropbox/olson/notes/elisp.org
+#+TITLE: Elisp
+#+DATE: 2016-07-07
+#+OLSON: PROG/EMACS
+
+* let bindings
+
+#+BEGIN_SRC emacs-lisp
+  (let ((a 1)
+        (b 5))
+    (+ a b))
+
+  (let* ((a 1)
+        (b (+ a 4)))
+    (+ a b))
+#+END_SRC
+
+* Functions
+** defun
+#+BEGIN_SRC emacs-lisp
+(defun square (x)
+  (* x x))
+
+#+END_SRC
+
+** lambda functions
+
+#+BEGIN_SRC emacs-lisp
+  (lambda (x) (* x x x))
+#+END_SRC
+
+** funcall
+
+#+BEGIN_SRC emacs-lisp
+
+(funcall '+)
+(funcall '+ 1 2 3)
+
+#+END_SRC
+
+** fset
+
+#+BEGIN_SRC emacs-lisp
+(fset 'cube (lambda (x) (* x x x)))
+(cube 5)
+#+END_SRC
+
+* Conditionals
+
+  In Emacs Lisp, =nil= and ='()= are the only false values.
+
+** and
+
+#+BEGIN_SRC emacs-lisp
+(and t "" 0)
+(and nil t)
+
+#+END_SRC
+
+** or
+=or= returns the first true argument.
+
+#+BEGIN_SRC emacs-lisp
+(or 1 2 "")
+
+(or nil 2)
+#+END_SRC
+
+** cond
+#+BEGIN_SRC emacs-lisp
+
+(defun pick-a-word (n)
+  (cond
+   ((= n 1) "bulbous")
+   ((= n 2) "bouffant")
+   ((= n 3) "beluga")
+   (t "gazebo!")))
+
+(pick-a-word 1)
+(pick-a-word 8)
+#+END_SRC
+* Lists
+** list
+
+Let's start with a simple list.
+
+#+BEGIN_SRC emacs-lisp
+(setq nics-db
+      '("nic"
+       ("job" "hacker")
+       ("packages" "elnode" "elpakit" "creole")
+       "magnars"
+       ("job" "movie star")
+       ("packages" "dash" "s.el" "mc")))
+
+(setq my-list (list 1 2 3))
+#+END_SRC
+
+** car
+
+#+BEGIN_SRC emacs-lisp
+(car nics-db)
+(car '())
+#+END_SRC
+
+** cdr
+
+#+BEGIN_SRC emacs-lisp
+(cdr nics-db)
+(cdr '(3))
+#+END_SRC
+
+** cadr
+
+=cadr= is the car of the cdr.
+
+#+BEGIN_SRC emacs-lisp
+(equalp (cadr nics-db)
+   (car (cdr nics-db)))
+#+END_SRC
+
+** length
+
+#+BEGIN_SRC emacs-lisp
+(length nics-db)
+#+END_SRC
+
+** elt
+
+The nth element of a list.
+
+#+BEGIN_SRC emacs-lisp
+(elt nics-db 1)
+#+END_SRC
+
+** cons
+
+Use =cons= to build lists.
+(Second commandment of the The *Little Schemer*)
+
+#+BEGIN_SRC emacs-lisp
+(cons 1 '(2 3))
+(cons 1 (cons 2 (cons 3 '())))
+#+END_SRC
+
+** listp
+
+#+BEGIN_SRC emacs-lisp
+  (listp '(1 2))
+  (listp 'a)
+#+END_SRC
+
+   Warning: =nil= is a valid list.
+
+#+BEGIN_SRC emacs-lisp
+(listp nil)
+#+END_SRC
+
+** mapcar
+
+#+BEGIN_SRC emacs-lisp
+(defun square (x)
+  (* x x))
+
+(mapcar 'square '(1 2 3))
+(mapcar 'square '())
+#+END_SRC
+
+** mapc
+
+   =mapc= is used when the result of the function is not necessary. It returns the input.
+   Typically =mapc= is handy for side-effect functions. (=mapc= can be seen as a =for loop=).
+
+#+BEGIN_SRC emacs-lisp
+  (mapc (lambda (x) (+ 2 x)) '(1 2 3))
+#+END_SRC
+** remove-if-not
+
+Remove the elements from the list if they don't satisfy
+the predicate functions.
+
+#+BEGIN_SRC emacs-lisp
+(remove-if-not 'oddp '(0 1 2 3 4 5 6))
+#+END_SRC
+* Buffers
+** get-buffer-create
+
+Get a buffer if it exists otherwise returns =nil=.
+
+#+BEGIN_SRC emacs-lisp
+(get-buffer-create "*test*")
+#+END_SRC
+
+** bufferp
+
+Return =t= if the argument is a buffer.
+
+#+BEGIN_SRC emacs-lisp
+(bufferp (get-buffer-create "*test*"))
+#+END_SRC
+
+** kill-buffer
+
+Kill the buffer
+
+#+BEGIN_SRC emacs-lisp
+(kill-buffer my-buffer)
+#+END_SRC
+
+** buffer-live-p
+
+Return =t= if the buffer is still alive.
+
+#+BEGIN_SRC emacs-lisp
+(bufferp my-buffer)
+(buffer-live-p my-buffer)
+#+END_SRC
+
+** generate-new-buffer
+
+Can generate multiple buffers incrementally
+
+#+BEGIN_SRC emacs-lisp
+(generate-new-buffer "*test*")
+#+END_SRC
+
+** with-current-buffer
+
+Write in the specified buffer.
+
+#+BEGIN_SRC emacs-lisp
+(setq my-buffer (get-buffer-create "*test*"))
+
+(with-current-buffer my-buffer
+  (insert "some text\n"))
+#+END_SRC
+
+** erase-buffer
+
+Delete the entire contents of the current buffer.
+
+#+BEGIN_SRC emacs-lisp
+(setq my-buffer (get-buffer-create "*test*"))
+
+(progn
+  (switch-to-buffer-other-window "*test*")
+  (erase-buffer)
+  (insert "Hello")
+  (other-window 1))
+#+END_SRC
+
+** (goto-char (point-min)) and (goto-char (point-max))
+
+Write at the beginning =(point-min)= or at then end =(point-max)= of the
+specified buffer.
+
+point-min: the first position in the buffer
+point-max: the last position in the buffer
+
+#+BEGIN_SRC emacs-lisp
+(setq my-buffer (get-buffer-create "*test*"))
+
+(with-current-buffer my-buffer
+  (goto-char (point-min))
+  (insert "beginning\n"))
+
+(with-current-buffer my-buffer
+  (insert "text\n"))
+
+(with-current-buffer my-buffer
+  (goto-char (point-max))
+  (insert "end\n"))
+#+END_SRC
+
+** switch-to-buffer
+
+#+BEGIN_SRC emacs-lisp
+(setq my-buffer (get-buffer-create "*test*"))
+
+(switch-to-buffer my-buffer)
+#+END_SRC
+
+** switch-to-buffer-other-window
+
+#+BEGIN_SRC emacs-lisp
+(progn
+  (switch-to-buffer-other-window "*test*")
+  (erase-buffer)
+  (hello "Taurus")
+  (other-window 1))
+#+END_SRC
+
+** other-window
+
+   Select another window in cyclic ordering of windows.
+   COUNT specifies the number of windows to skip, starting with the
+   selected window, before making the selection.  If COUNT is
+   positive, skip COUNT windows forwards.  If COUNT is negative,
+   skip -COUNT windows backwards.  COUNT zero means do not skip any
+   window, so select the selected window.
+
+
+#+BEGIN_SRC emacs-lisp
+(let ((my-buffer (get-buffer-create "*test*")))
+  (switch-to-buffer-other-window my-buffer)
+  (other-window 1)
+  )
+#+END_SRC
+
+** search-forward
+** replace-match
+** add-text-properties
+* Movements
+** previous-line
+
+Go to the n previous line
+
+#+BEGIN_SRC emacs-lisp
+(previous-line)
+(previous-line 2)
+#+END_SRC
+
+** save-excursion
+
+#+BEGIN_SRC emacs-lisp
+  (save-excursion
+    (goto-char (point-min))
+    (while (search-forward-regexp "rope" (point-max) t)
+    (replace-match "belt")))
+#+END_SRC
+* Symbols
+** symbol-name
+
+   Convert a symbol to the string name of this symbol.
+
+#+BEGIN_SRC emacs-lisp
+  (symbol-name 'hello) ;; => "hello
+#+END_SRC
+
+** intern
+
+
+   Convert a string to its symbol.
+
+#+BEGIN_SRC emacs-lisp
+  (intern "hello") ;; => 'hello
+#+END_SRC
+* Emacs Lisp is an Lisp-2
+
+  The term "Lisp-2" simply refers to the fact that Emacs Lisp has 2 separate
+  "namespaces" for functions and variables.
+
+#+BEGIN_SRC emacs-lisp
+  ;; Variable x
+  (setq x 100)
+
+  ;; Function x
+  (defun x (a)
+    (+ a 1))
+
+(x 1) ;; => 2
+x     ;; => 100
+#+END_SRC
+
+  In minor-modes:
+#+BEGIN_SRC emacs-lisp
+  (whitespace-mode)
+  (whitespace-mode 0)
+
+  whitespace-mode
+#+END_SRC
